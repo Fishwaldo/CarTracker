@@ -22,10 +22,11 @@ import (
 )
 
 var (
-    version = "0.0.1"
-    commit  = "none"
-    date    = "unknown"
-    builtBy = "unknown"
+    Version = "0.0.0"
+    GitCommit  = "none"
+    GitBranch    = "unknown"
+    GitState = "unknown"
+	GitSummary = "unknown"
 )
 func init() {
 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Sum != "" {
@@ -35,12 +36,12 @@ func init() {
 
 func main() {
 
-	fmt.Printf("Starting CarTracker %s - %s (built by %s on %s)\n", version, commit, builtBy, date)
+	fmt.Printf("Starting CarTracker %s - %s/%s (%s) - %s\n", Version, GitBranch, GitCommit, GitState, GitSummary)
 	logger := logrus.LogrusDefaultLogger()
 
 	//dbus.DBUS.Start(logger)
 
-	err := update.DoUpdate(version)
+	err := update.DoUpdate(Version)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
