@@ -1,31 +1,71 @@
-/* 
-MIT License
-
-Copyright (c) 2021 Justin Hammond
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 package main
 
-import "fmt"
+import (
+	//"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"runtime/debug"
+	"syscall"
+
+	"github.com/Fishwaldo/CarTracker/internal"
+	_ "github.com/Fishwaldo/CarTracker/internal/config"
+	//"github.com/Fishwaldo/CarTracker/internal/dbus"
+	_ "github.com/Fishwaldo/CarTracker/internal/gps"
+	"github.com/Fishwaldo/CarTracker/internal/natsconnection"
+	_ "github.com/Fishwaldo/CarTracker/internal/perf"
+	_ "github.com/Fishwaldo/CarTracker/internal/powersupply"
+	"github.com/Fishwaldo/CarTracker/internal/taskmanager"
+	"github.com/Fishwaldo/CarTracker/internal/update"
+	"github.com/Fishwaldo/CarTracker/internal/web"
+	"github.com/Fishwaldo/go-logadapter/loggers/logrus"
+)
+
+var (
+    version = "0.0.1"
+    commit  = "none"
+    date    = "unknown"
+    builtBy = "unknown"
+)
+func init() {
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Sum != "" {
+		fmt.Println(info)
+	  }
+}
 
 func main() {
-    fmt.Println("hello world")
+
+	fmt.Printf("Starting CarTracker %s - %s (built by %s on %s)\n", version, commit, builtBy, date)
+	logger := logrus.LogrusDefaultLogger()
+
+	//dbus.DBUS.Start(logger)
+
+	err := update.DoUpdate(version)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	
+	return
+
+	//logger.SetLevel(logadapter.LOG_TRACE)
+	natsconnection.Nats.Start(logger.New("NATS"))
+	web.Web.Start(logger.New("WEB"))
+	taskmanager.InitScheduler(logger.New("TaskManager"))
+
+	internal.StartPlugins(logger)
+
+	taskmanager.StartScheduler()
+
+	logger.Info("Server Started")
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	s := <-signalChan
+	logger.Info("Got Shutdown Signal %s", s)
+
+	internal.StopPlugins()
+
+	taskmanager.StopScheduler()
+
 }

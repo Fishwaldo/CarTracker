@@ -1,3 +1,19 @@
-module github.com/Fishwaldo/go-template
+module github.com/Fishwaldo/CarTracker
 
 go 1.16
+
+require (
+	github.com/Fishwaldo/go-dcdc200 v0.0.2-0.20210923120656-7b609977be06
+	github.com/Fishwaldo/go-logadapter v0.0.2
+	github.com/Fishwaldo/go-taskmanager v0.0.0-20210918045401-1ed25dc708fa
+	github.com/adrianmo/go-nmea v1.4.0
+	github.com/godbus/dbus/v5 v5.0.4
+	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
+	github.com/labstack/echo/v4 v4.6.0
+	github.com/nats-io/nats-server/v2 v2.6.1 // indirect
+	github.com/nats-io/nats.go v1.12.3
+	github.com/sasha-s/go-deadlock v0.3.1
+	github.com/shirou/gopsutil/v3 v3.21.8
+	github.com/spf13/viper v1.9.0
+	golang.org/x/net v0.0.0-20210913180222-943fd674d43e
+)
