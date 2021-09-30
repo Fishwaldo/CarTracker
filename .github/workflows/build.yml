@@ -13,7 +13,7 @@ jobs:
         strategy:
             matrix:
                 go-version: [ 1.16.x, 1.15.x, 1.14.x, 1.13.x ]
-                platform: [ ubuntu-latest, macos-latest, windows-latest ]
+                platform: [ ubuntu-latest ]
         runs-on: ${{ matrix.platform }}
         steps:
             -   name: Install Go
@@ -21,6 +21,8 @@ jobs:
                 uses: actions/setup-go@v1
                 with:
                     go-version: ${{ matrix.go-version }}
+            -   name: Install libusb-1.0-0-dev
+                run: sudo apt-get install libusb-1.0-0-dev
             -   name: Checkout code
                 uses: actions/checkout@v1
             -   name: Run tests
@@ -36,6 +38,8 @@ jobs:
         steps:
         - name: Checkout repository
           uses: actions/checkout@v2
+        - name: Install libusb-1.0-0-dev
+          run: sudo apt-get install libusb-1.0-0-dev
         - name: Initialize CodeQL
           uses: github/codeql-action/init@v1
           with:
@@ -56,6 +60,8 @@ jobs:
                     go-version: 1.16.x
             -   name: Checkout code
                 uses: actions/checkout@v1
+            -   name: Install libusb-1.0-0-dev
+                run: sudo apt-get install libusb-1.0-0-dev
             -   name: Run tests
                 run: go mod tidy && go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
             -   name: CodeCov
@@ -87,7 +93,7 @@ jobs:
             badge-codecov: 'true'
             badge-godoc: 'true'
             email: 'justin@dynam.ac'
-            title: 'Go-LogAdapter'
+            title: 'Go-CarAdapter'
             # Optional: Token allows goreadme to comment the PR with diff preview.
             github-token: '${{ secrets.GITHUB_TOKEN }}'
             
