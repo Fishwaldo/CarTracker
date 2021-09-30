@@ -2,6 +2,7 @@ package main
 
 import (
 	//"context"
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/Fishwaldo/CarTracker/internal"
 	_ "github.com/Fishwaldo/CarTracker/internal/config"
+
 	//"github.com/Fishwaldo/CarTracker/internal/dbus"
 	_ "github.com/Fishwaldo/CarTracker/internal/gps"
 	"github.com/Fishwaldo/CarTracker/internal/natsconnection"
@@ -32,6 +34,11 @@ func init() {
 }
 
 func main() {
+	logger := logrus.LogrusDefaultLogger()
+
+	//logger.SetLevel(logadapter.LOG_TRACE)
+
+
 	version, err := semver.ParseTolerant(VersionSummary)
 	if err != nil {
 		version, _ = semver.Make("0.0.0")
@@ -45,19 +52,15 @@ func main() {
 		}
 	}
 	
-	fmt.Printf("Starting CarTracker Version %s\n", versionstring)
-	logger := logrus.LogrusDefaultLogger()
+	logger.Info("Starting CarTracker Version %s\n", versionstring)
+	if latest, err := update.GitHubLatestRelease(context.Background(), "Fishwaldo", "CarTracker"); err != nil {
+		logger.Warn("Cant Find Latest Release Info From Github: %s", err)
+	} else {
+		logger.Info("Latest Release is %s", latest.String());
+	}
 
 	//dbus.DBUS.Start(logger)
 
-	err = update.DoUpdate(version)
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-	}
-	
-	return
-
-	//logger.SetLevel(logadapter.LOG_TRACE)
 	natsconnection.Nats.Start(logger.New("NATS"))
 	web.Web.Start(logger.New("WEB"))
 	taskmanager.InitScheduler(logger.New("TaskManager"))
