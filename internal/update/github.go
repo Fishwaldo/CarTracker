@@ -11,6 +11,7 @@ import (
 	"errors"
 //	"github.com/pkg/errors"
 	"golang.org/x/net/context/ctxhttp"
+	"github.com/blang/semver/v4"
 )
 
 // Release collects data about a single release on GitHub.
@@ -22,7 +23,7 @@ type Release struct {
 	PublishedAt time.Time `json:"published_at"`
 	Assets      []Asset   `json:"assets"`
 
-	Version string `json:"-"` // set manually in the code
+	Version semver.Version `json:"-"` // set manually in the code
 }
 
 // Asset is a file uploaded and attached to a release.
@@ -106,7 +107,9 @@ func GitHubLatestRelease(ctx context.Context, owner, repo string) (Release, erro
 		return Release{}, fmt.Errorf("tag name %q is invalid, does not start with 'v'", release.TagName)
 	}
 
-	release.Version = release.TagName[1:]
+	if release.Version, err = semver.ParseTolerant(release.TagName[1:]); err != nil {
+		return Release{}, fmt.Errorf("can't Parse Release Version From Github: %s", release.TagName[1:])
+	}
 
 	return release, nil
 }

@@ -19,14 +19,11 @@ import (
 	"github.com/Fishwaldo/CarTracker/internal/update"
 	"github.com/Fishwaldo/CarTracker/internal/web"
 	"github.com/Fishwaldo/go-logadapter/loggers/logrus"
+	"github.com/blang/semver/v4"
 )
 
 var (
-    Version = "0.0.0"
-    GitCommit  = "none"
-    GitBranch    = "unknown"
-    GitState = "unknown"
-	GitSummary = "unknown"
+    VersionSummary = "0.0.0"
 )
 func init() {
 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Sum != "" {
@@ -35,13 +32,25 @@ func init() {
 }
 
 func main() {
-
-	fmt.Printf("Starting CarTracker %s - %s/%s (%s) - %s\n", Version, GitBranch, GitCommit, GitState, GitSummary)
+	version, err := semver.ParseTolerant(VersionSummary)
+	if err != nil {
+		version, _ = semver.Make("0.0.0")
+	}
+	/* construct a version */
+	versionstring := version.FinalizeVersion()
+	if len(version.Pre) > 0 {
+		versionstring = fmt.Sprintf("%s-%s", versionstring, version.Pre[0].VersionStr)
+		if len(version.Build) > 0 {
+			versionstring = fmt.Sprintf("%s-%s", versionstring, version.Build[0])
+		}
+	}
+	
+	fmt.Printf("Starting CarTracker Version %s\n", versionstring)
 	logger := logrus.LogrusDefaultLogger()
 
 	//dbus.DBUS.Start(logger)
 
-	err := update.DoUpdate(Version)
+	err = update.DoUpdate(version)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}

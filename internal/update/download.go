@@ -16,6 +16,7 @@ import (
 	"strings"
 	"errors"
 
+	"github.com/blang/semver/v4"
 //	"github.com/pkg/errors"
 )
 
@@ -105,19 +106,19 @@ func extractToFile(buf []byte, filename, target string) error {
 }
 
 // DownloadLatestStableRelease downloads the latest stable released version of
-// restic and saves it to target. It returns the version string for the newest
+// CarTracker and saves it to target. It returns the version string for the newest
 // version. The function printf is used to print progress information.
-func DownloadLatestStableRelease(ctx context.Context, target, currentVersion string) (version string, err error) {
+func DownloadLatestStableRelease(ctx context.Context, target string, currentVersion semver.Version) (version semver.Version, err error) {
 
-	fmt.Printf("find latest release of restic at GitHub\n")
+	fmt.Printf("find latest release of CarTracker at GitHub\n")
 
 	rel, err := GitHubLatestRelease(ctx, "Fishwaldo", "CarTracker")
 	if err != nil {
-		return "", err
+		return semver.Version{}, err
 	}
 
-	if rel.Version == currentVersion {
-		fmt.Printf("restic is up to date\n")
+	if rel.Version.LTE(currentVersion) {
+		fmt.Printf("CarTracker is up to date\n")
 		return currentVersion, nil
 	}
 
@@ -125,7 +126,7 @@ func DownloadLatestStableRelease(ctx context.Context, target, currentVersion str
 
 	_, sha256sums, err := getGithubDataFile(ctx, rel.Assets, "SHA256SUMS")
 	if err != nil {
-		return "", err
+		return currentVersion, err
 	}
 
 	// _, sig, err := getGithubDataFile(ctx, rel.Assets, "SHA256SUMS.asc", printf)
@@ -152,30 +153,30 @@ func DownloadLatestStableRelease(ctx context.Context, target, currentVersion str
 	suffix := fmt.Sprintf("%s_%s.%s", runtime.GOOS, runtime.GOARCH, ext)
 	downloadFilename, buf, err := getGithubDataFile(ctx, rel.Assets, suffix)
 	if err != nil {
-		return "", err
+		return currentVersion, err
 	}
 
 	fmt.Printf("downloaded %v\n", downloadFilename)
 
 	wantHash, err := findHash(sha256sums, downloadFilename)
 	if err != nil {
-		return "", err
+		return currentVersion, err
 	}
 
 	gotHash := sha256.Sum256(buf)
 	if !bytes.Equal(wantHash, gotHash[:]) {
-		return "", fmt.Errorf("SHA256 hash mismatch, want hash %02x, got %02x", wantHash, gotHash)
+		return currentVersion, fmt.Errorf("SHA256 hash mismatch, want hash %02x, got %02x", wantHash, gotHash)
 	}
 
 	err = extractToFile(buf, downloadFilename, target)
 	if err != nil {
-		return "", err
+		return currentVersion, err
 	}
 
 	return rel.Version, nil
 }
 
-func DoUpdate(version string) (err error) {
+func DoUpdate(version semver.Version) (err error) {
 	file, err := os.Executable()
 	if err != nil {
 		return errors.New("unable to find executable")
@@ -200,11 +201,11 @@ func DoUpdate(version string) (err error) {
 
 	v, err := DownloadLatestStableRelease(context.Background(), file, version)
 	if err != nil {
-		return fmt.Errorf("unable to update restic: %v", err)
+		return fmt.Errorf("unable to update CarTracker: %v", err)
 	}
 
-	if v != version {
-		fmt.Printf("successfully updated restic to version %v\n", v)
+	if v.GT(version) {
+		fmt.Printf("successfully updated CarTracker to version %v\n", v)
 	}
 	return nil
 }
