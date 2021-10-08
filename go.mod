@@ -12,7 +12,7 @@ require (
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/nats-io/nats-server/v2 v2.6.1 // indirect
-	github.com/nats-io/nats.go v1.12.3
+	github.com/nats-io/nats.go v1.13.0
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/shirou/gopsutil/v3 v3.21.9
 	github.com/spf13/viper v1.9.0
