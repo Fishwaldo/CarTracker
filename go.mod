@@ -6,7 +6,7 @@ require (
 	github.com/Fishwaldo/go-dcdc200 v0.0.2-0.20210923120656-7b609977be06
 	github.com/Fishwaldo/go-logadapter v0.0.2
 	github.com/Fishwaldo/go-taskmanager v0.0.0-20210918045401-1ed25dc708fa
-	github.com/adrianmo/go-nmea v1.4.0
+	github.com/adrianmo/go-nmea v1.4.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/godbus/dbus/v5 v5.0.5
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
