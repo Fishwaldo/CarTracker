@@ -14,7 +14,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.6.1 // indirect
 	github.com/nats-io/nats.go v1.13.0
 	github.com/sasha-s/go-deadlock v0.3.1
-	github.com/shirou/gopsutil/v3 v3.21.12
+	github.com/shirou/gopsutil/v3 v3.22.3
 	github.com/spf13/viper v1.10.1
 	golang.org/x/net v0.0.0-20210913180222-943fd674d43e
 )
