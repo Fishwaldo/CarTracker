@@ -1,21 +1,20 @@
 package taskmanager
 
 import (
-	"github.com/Fishwaldo/go-logadapter"
+	"github.com/go-logr/logr"
 	"github.com/Fishwaldo/go-taskmanager"
+
 	//"github.com/Fishwaldo/go-taskmanager/job"
 	//executionmiddleware "github.com/Fishwaldo/go-taskmanager/middleware/executation"
 	//retrymiddleware "github.com/Fishwaldo/go-taskmanager/middleware/retry"
-	logruslog "github.com/Fishwaldo/go-taskmanager/loggers/logrus"
 )
 
 //var logger logadapter.Logger
 var scheduler *taskmanager.Scheduler
 
-func InitScheduler(log logadapter.Logger) {
-	logger :=  logruslog.LogrusDefaultLogger();
+func InitScheduler(log logr.Logger) {
 	scheduler = taskmanager.NewScheduler(
-		taskmanager.WithLogger(logger),
+		taskmanager.WithLogger(log),
 	)
 }
 

@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/Fishwaldo/CarTracker/internal"
-	"github.com/Fishwaldo/CarTracker/internal/natsconnection"
 	tm "github.com/Fishwaldo/CarTracker/internal/taskmanager"
-	"github.com/Fishwaldo/go-logadapter"
+	"github.com/go-logr/logr"
 	"github.com/Fishwaldo/go-taskmanager"
 	"github.com/adrianmo/go-nmea"
 	"github.com/jacobsa/go-serial/serial"
@@ -36,7 +35,7 @@ type GPSData struct {
 }
 
 type GpsS struct {
-	logger  logadapter.Logger
+	logger  logr.Logger
 	serial  io.ReadWriteCloser
 	scanner *bufio.Scanner
 	Data    GPSData
@@ -45,7 +44,7 @@ type GpsS struct {
 
 var GPS GpsS
 
-func (g *GpsS) Start(log logadapter.Logger) {
+func (g *GpsS) Start(log logr.Logger) {
 	g.stop = make(chan interface{})
 	g.logger = log
 	options := serial.OpenOptions{
@@ -57,18 +56,18 @@ func (g *GpsS) Start(log logadapter.Logger) {
 	}
 	var err error
 	if g.serial, err = serial.Open(options); err != nil {
-		g.logger.Warn("Can't Open GPS Serial Port: %s", err)
+		g.logger.Error(err, "Can't Open GPS Serial Port")
 	}
 	g.scanner = bufio.NewScanner(bufio.NewReader(g.serial))
 	go g.Scan()
 
 	fixedTimer, err := taskmanager.NewFixed(viper.GetDuration("gps.poll") * time.Second)
 	if err != nil {
-		g.logger.Panic("invalid interval: %s", err.Error())
+		g.logger.Error(err, "invalid interval")
 	}
 	err = tm.GetScheduler().Add(context.Background(), "GPS", fixedTimer, g.Poll)
 	if err != nil {
-		g.logger.Panic("Can't Initilize Scheduler for GPS: %s", err)
+		g.logger.Error(err, "Can't Initilize Scheduler for GPS")
 	}
 	g.logger.Info("Added GPS Polling Schedule")
 
@@ -82,10 +81,10 @@ func (g *GpsS) Scan() {
 			return
 		default:
 			scanText := g.scanner.Text()
-			g.logger.Trace("Scanning... %s", scanText)
+			g.logger.V(1).Info("Scanning... ", "data", scanText)
 			s, err := nmea.Parse(scanText)
 			if err == nil {
-				g.logger.Trace("Got NMEA Type: %s", s.DataType())
+				g.logger.V(1).Info("Got NMEA Type", "type", s.DataType())
 				switch s.DataType() {
 				case nmea.TypeRMC:
 					data := s.(nmea.RMC)
@@ -93,7 +92,7 @@ func (g *GpsS) Scan() {
 					g.Data.Latitude = data.Latitude
 					g.Data.Longitude = data.Longitude
 					g.Data.mx.Unlock()
-					g.logger.Trace("RMC Lat: %0.4f Long: %0.4f", data.Latitude, data.Longitude)
+					g.logger.V(1).Info("RMC Data", "lat", data.Latitude, "long", data.Longitude)
 
 				case nmea.TypeGGA:
 					data := s.(nmea.GGA)
@@ -102,17 +101,17 @@ func (g *GpsS) Scan() {
 					g.Data.HDOP = data.HDOP
 					g.Data.NumSatellites = data.NumSatellites
 					g.Data.mx.Unlock()
-					g.logger.Trace("GAA Altitide: %0.2f HDOP: %0.2f Satellites: %d", data.Altitude, data.HDOP, data.NumSatellites)
+					g.logger.V(1).Info("GAA Data", "altitide", data.Altitude, "hdop", data.HDOP, "satellites", data.NumSatellites)
 				case nmea.TypeVTG:
 					data := s.(nmea.VTG)
 					g.Data.mx.Lock()
 					g.Data.Track = data.TrueTrack
 					g.Data.Speed = data.GroundSpeedKPH
 					g.Data.mx.Unlock()
-					g.logger.Trace("VTG Track: %0.2f Speed: %0.2f", data.TrueTrack, data.GroundSpeedKPH)
+					g.logger.V(1).Info("VTG Data", "track", data.TrueTrack, "speed", data.GroundSpeedKPH)
 				}
 			} else {
-				g.logger.Warn("GPS Read Failed: %s\n%s", err, scanText)
+				g.logger.Error(err, "GPS Read Failed", "scantext", scanText)
 			}
 		}
 	}
@@ -126,6 +125,6 @@ func (g *GpsS) Stop() {
 
 func (g *GpsS) Poll(ctx context.Context) {
 	g.Data.mx.RLock()
-	natsconnection.Nats.SendStats("gps", &g.Data)
+	internal.ProcessUpdate("gps", &g.Data)
 	g.Data.mx.RUnlock()
 }

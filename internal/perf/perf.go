@@ -6,11 +6,10 @@ import (
 
 	"net/http"
 
-	"github.com/Fishwaldo/CarTracker/internal/natsconnection"
 	"github.com/Fishwaldo/CarTracker/internal"
 	tm "github.com/Fishwaldo/CarTracker/internal/taskmanager"
 	"github.com/Fishwaldo/CarTracker/internal/web"
-	"github.com/Fishwaldo/go-logadapter"
+	"github.com/go-logr/logr"
 	"github.com/Fishwaldo/go-taskmanager"
 	"github.com/labstack/echo/v4"
 	"github.com/sasha-s/go-deadlock"
@@ -49,25 +48,25 @@ type PerfStats struct {
 
 type PerfS struct {
 	Performance PerfStats
-	log         logadapter.Logger
+	log         logr.Logger
 	mx          deadlock.RWMutex
 }
 
 var Perf PerfS
 
-func (p *PerfS) Start(log logadapter.Logger) {
+func (p *PerfS) Start(log logr.Logger) {
 	p.log = log
 	var err error
 	ctx, _ := context.WithTimeout(context.Background(), viper.GetDuration("perf.timeout") *time.Second)
 
 	if p.Performance.Cpuinfo, err = cpu.InfoWithContext(ctx); err != nil {
-		p.log.Warn("Can't Get CPU Info: %w", err)
+		p.log.Error(err, "Can't Get CPU Info")
 	}
 	if p.Performance.Diskpartions, err = disk.PartitionsWithContext(ctx, true); err != nil {
-		p.log.Warn("Can't Get Disk Partitions: %w", err)
+		p.log.Error(err, "Can't Get Disk Partitions")
 	}
 	if p.Performance.Hostinfo, err = host.InfoWithContext(ctx); err != nil {
-		p.log.Warn("Can't get Host Info: %w", err)
+		p.log.Error(err, "Can't get Host Info")
 	}
 	p.Poll(ctx)
 
@@ -88,11 +87,11 @@ func (p *PerfS) Start(log logadapter.Logger) {
 
 	fixedTimer1second, err := taskmanager.NewFixed(viper.GetDuration("perf.poll") * time.Second)
 	if err != nil {
-		p.log.Panic("invalid interval: %s", err.Error())
+		p.log.Error(err, "invalid interval")
 	}
 	err = tm.GetScheduler().Add(context.Background(), "Perf", fixedTimer1second, p.Poll)
 	if err != nil {
-		p.log.Panic("Can't Initilize Scheduler for Perf: %s", err)
+		p.log.Error(err, "Can't Initilize Scheduler for Perf")
 	}
 	p.log.Info("Added Perf Polling Schedule")
 }
@@ -110,41 +109,40 @@ func (p *PerfS) Poll(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, viper.GetDuration("perf.timeout") * time.Second)
 	defer cancel()
 	if p.Performance.Cputime, err = cpu.TimesWithContext(ctx, true); err != nil {
-		p.log.Warn("Can't get CPU Time: %w", err)
+		p.log.Error(err, "Can't get CPU Time")
 	}
 	if p.Performance.Cpuutilization, err = cpu.PercentWithContext(ctx, 1*time.Second, true); err != nil {
-		p.log.Warn("Can't Get CPU Load: %w", err)
+		p.log.Error(err, "Can't Get CPU Load")
 	}
 	if p.Performance.Diskiocounter, err = disk.IOCountersWithContext(ctx); err != nil {
-		p.log.Warn("Cant get IO Stats: %w", err)
+		p.log.Error(err, "Cant get IO Stats")
 	}
 	if p.Performance.Hosttemp, err = host.SensorsTemperaturesWithContext(ctx); err != nil {
-		p.log.Warn("Can't Get Temp Stats: %w", err)
+		p.log.Error(err, "Can't Get Temp Stats")
 	}
 	if p.Performance.Hostusers, err = host.UsersWithContext(ctx); err != nil {
-		p.log.Warn("Can't get Users: %w", err)
+		p.log.Error(err, "Can't get Users")
 	}
 	if p.Performance.Loadavg, err = load.AvgWithContext(ctx); err != nil {
-		p.log.Warn("Can't get Load Average: %w", err)
+		p.log.Error(err, "Can't get Load Average")
 	}
 	if p.Performance.Loadprocs, err = load.MiscWithContext(ctx); err != nil {
-		p.log.Warn("Can't get Proc Info: %w", err)
+		p.log.Error(err, "Can't get Proc Info")
 	}
 	if p.Performance.Memstats, err = mem.VirtualMemoryWithContext(ctx); err != nil {
-		p.log.Warn("Can't get Memory Stats: %w", err)
+		p.log.Error(err, "Can't get Memory Stats")
 	}
 	if p.Performance.Memswap, err = mem.SwapMemoryWithContext(ctx); err != nil {
-		p.log.Warn("Can't get Swap Stats: %w", err)
+		p.log.Error(err, "Can't get Swap Stats")
 	}
 	if p.Performance.Netstats, err = net.IOCountersWithContext(ctx, true); err != nil {
-		p.log.Warn("Can't get Network IO Stats: %w", err)
+		p.log.Error(err, "Can't get Network IO Stats")
 	}
 	if p.Performance.Netaddr, err = net.InterfacesWithContext(ctx); err != nil {
-		p.log.Warn("Can't get Interface Info")
+		p.log.Error(err, "Can't get Interface Info")
 	}
-	natsconnection.Nats.SendStats("Perf", p.Performance)
 
-	//p.log.Info("Perf: %+v", p.Performance)
+	internal.ProcessUpdate("Perf", p.Performance)
 }
 
 func (p *PerfS) CPUInfo(c echo.Context) error {

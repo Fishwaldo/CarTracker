@@ -18,3 +18,4 @@ dist/
 CarTracker
 cartracker.yml
 *.creds
+utils/gpsrecorder/gpsrecorder

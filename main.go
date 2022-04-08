@@ -12,7 +12,7 @@ import (
 	"github.com/Fishwaldo/CarTracker/internal"
 	_ "github.com/Fishwaldo/CarTracker/internal/config"
 
-	//"github.com/Fishwaldo/CarTracker/internal/dbus"
+	"github.com/Fishwaldo/CarTracker/internal/dbus"
 	_ "github.com/Fishwaldo/CarTracker/internal/gps"
 	"github.com/Fishwaldo/CarTracker/internal/natsconnection"
 	_ "github.com/Fishwaldo/CarTracker/internal/perf"
@@ -20,8 +20,9 @@ import (
 	"github.com/Fishwaldo/CarTracker/internal/taskmanager"
 	"github.com/Fishwaldo/CarTracker/internal/update"
 	"github.com/Fishwaldo/CarTracker/internal/web"
-	"github.com/Fishwaldo/go-logadapter/loggers/logrus"
 	"github.com/blang/semver/v4"
+	"github.com/bombsimon/logrusr/v2"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -34,7 +35,8 @@ func init() {
 }
 
 func main() {
-	logger := logrus.LogrusDefaultLogger()
+	logsink := logrus.New()
+	logger := logrusr.New(logsink)
 
 	//logger.SetLevel(logadapter.LOG_TRACE)
 
@@ -52,20 +54,22 @@ func main() {
 		}
 	}
 	
-	logger.Info("Starting CarTracker Version %s\n", versionstring)
+	logger.Info("Starting CarTracker", "version", versionstring)
 	if latest, err := update.GitHubLatestRelease(context.Background(), "Fishwaldo", "CarTracker"); err != nil {
-		logger.Warn("Cant Find Latest Release Info From Github: %s", err)
+		logger.Error(err, "Cant Find Latest Release Info From Github")
 	} else {
-		logger.Info("Latest Release is %s", latest.String());
+		logger.Info("Latest Release", "version", latest.String());
 	}
 
-	//dbus.DBUS.Start(logger)
+	dbus.DBUS.Start(logger)
 
-	natsconnection.Nats.Start(logger.New("NATS"))
-	web.Web.Start(logger.New("WEB"))
-	taskmanager.InitScheduler(logger.New("TaskManager"))
+	natsconnection.Nats.Start(logger.WithName("NATS"))
+	web.Web.Start(logger.WithName("WEB"))
+	taskmanager.InitScheduler(logger.WithName("TaskManager"))
 
 	internal.StartPlugins(logger)
+
+	internal.InitStatusUpdate()
 
 	taskmanager.StartScheduler()
 
@@ -75,7 +79,7 @@ func main() {
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	s := <-signalChan
-	logger.Info("Got Shutdown Signal %s", s)
+	logger.Info("Got Shutdown Signal", "signal", s)
 
 	internal.StopPlugins()
 
