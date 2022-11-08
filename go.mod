@@ -17,6 +17,6 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/shirou/gopsutil/v3 v3.22.6
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spf13/viper v1.12.0
-	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2
+	github.com/spf13/viper v1.14.0
+	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
 )
