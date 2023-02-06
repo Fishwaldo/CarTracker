@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/Fishwaldo/go-dcdc200 v0.0.5
 	github.com/Fishwaldo/go-taskmanager v0.0.1
-	github.com/adrianmo/go-nmea v1.7.0
+	github.com/adrianmo/go-nmea v1.8.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/bombsimon/logrusr/v2 v2.0.1
 	github.com/go-logr/logr v1.2.3
